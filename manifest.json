@@ -1,0 +1,13 @@
+{
+  "name": "Slick Insight Earnings Calculator",
+  "short_name": "Slick Earnings",
+  "description": "Track match earnings by duration, date, weekday and weekend.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#172554",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#172554" />
+<meta name="description" content="Track Slick Insight match earnings by date, duration, weekday and weekend." />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<title>Slick Insight Earnings Calculator</title>
+<style>
+  :root { font-family: Arial, Helvetica, sans-serif; color: #172033; background: #f3f6fb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 12px 36px; }
+  .app { max-width: 620px; margin: 0 auto; }
+  header { background: #172554; color: white; padding: 22px; border-radius: 18px; }
+  header h1 { margin: 0 0 7px; font-size: 24px; }
+  header p { margin: 0; color: #dbeafe; line-height: 1.5; font-size: 14px; }
+  .panel { background: white; border-radius: 16px; padding: 18px; margin-top: 14px; box-shadow: 0 5px 18px #1725540d; }
+  h2 { font-size: 17px; margin: 0 0 15px; }
+  label { display: block; font-size: 13px; font-weight: 700; margin: 12px 0 7px; }
+  input, select, button { width: 100%; font: inherit; border-radius: 10px; padding: 12px; }
+  input, select { border: 1px solid #cbd5e1; background: white; color: #172033; }
+  button { border: 0; cursor: pointer; font-weight: 700; }
+  .primary { background: #2563eb; color: white; margin-top: 16px; }
+  .secondary { background: #e2e8f0; color: #172033; }
+  .danger { background: #fee2e2; color: #991b1b; }
+  .total { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 13px; padding: 15px; }
+  .total small { color: #065f46; }
+  .amount { display: block; color: #047857; font-size: 32px; font-weight: 800; margin-top: 5px; }
+  .hint, .status { color: #64748b; font-size: 13px; line-height: 1.5; }
+  .status { margin-top: 10px; }
+  .match { border-top: 1px solid #e2e8f0; padding: 13px 0; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .match:first-child { border-top: 0; }
+  .match strong { display: block; margin-bottom: 4px; }
+  .match small { color: #64748b; }
+  .match .price { font-weight: 800; white-space: nowrap; }
+  .empty { color: #64748b; font-size: 14px; padding: 8px 0; }
+  .rate-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #e2e8f0; font-size: 14px; }
+  .rate-row span:last-child { text-align: right; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; min-width: 0; }
+  .stat small { display: block; color: #64748b; font-size: 12px; }
+  .stat strong { display: block; margin-top: 6px; font-size: 21px; color: #047857; overflow-wrap: anywhere; }
+  @media (max-width: 380px) { .actions { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>₹ Slick Insight Calculator</h1>
+    <p>Calculate match earnings by duration and date. Saturday and Sunday use weekend rates.</p>
+  </header>
+
+  <section class="panel">
+    <h2>Calculate a match</h2>
+    <label for="matchDate">Match date</label>
+    <input id="matchDate" type="date" />
+    <label for="matchTime">Match time (optional)</label>
+    <input id="matchTime" type="time" />
+    <label for="minutes">Match duration (whole minutes)</label>
+    <input id="minutes" type="number" min="1" step="1" placeholder="e.g. 18" inputmode="numeric" />
+    <div id="rateType" class="status">Choose a date and enter the match duration.</div>
+    <div id="manualAmountWrap" hidden>
+      <label for="manualAmount">Enter amount manually (₹)</label>
+      <input id="manualAmount" type="number" min="0" step="1" placeholder="Enter the amount you received" inputmode="numeric" />
+      <p class="hint">For matches under 10 minutes, enter the amount you were paid.</p>
+    </div>
+    <div class="total" style="margin-top:12px">
+      <small>Amount for this match</small>
+      <span class="amount" id="matchAmount">₹0</span>
+      <small id="rateExplanation">Enter a duration to see the applicable rate.</small>
+    </div>
+    <button class="primary" id="addMatch">＋ Add match to daily total</button>
+    <div id="message" class="status" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Daily earnings</h2>
+    <label for="summaryDate">Show saved matches for date</label>
+    <input id="summaryDate" type="date" />
+    <div class="stats">
+      <div class="stat"><small>Selected day</small><strong id="dayTotalCard">₹0</strong></div>
+      <div class="stat"><small>Selected week (Mon–Sun)</small><strong id="weekTotal">₹0</strong></div>
+      <div class="stat"><small>Selected month</small><strong id="monthTotal">₹0</strong></div>
+      <div class="stat"><small>All-time total</small><strong id="allTimeTotal">₹0</strong></div>
+    </div>
+    <div class="total" style="margin-top:12px">
+      <small>Total earnings for selected date</small>
+      <span class="amount" id="dayTotal">₹0</span>
+      <small id="matchCount">0 matches</small>
+    </div>
+    <div id="matchList" style="margin-top:12px"></div>
+    <div class="actions">
+      <button class="secondary" id="exportCsv">Download daily report</button>
+      <button class="danger" id="clearDay">Clear this day's matches</button>
+    </div>
+    <p class="hint">Matches are saved in this browser on this device. Use “Download daily report” to keep a copy.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Rate card</h2>
+    <div class="rate-row"><span>10–11 minutes</span><span>Weekday ₹230 · Weekend ₹250</span></div>
+    <div class="rate-row"><span>12–14 minutes</span><span>Weekday ₹270 · Weekend ₹300</span></div>
+    <div class="rate-row"><span>15–16 minutes</span><span>Weekday ₹340 · Weekend ₹370</span></div>
+    <div class="rate-row"><span>17–19 minutes</span><span>Weekday ₹390 · Weekend ₹430</span></div>
+    <div class="rate-row"><span>20–22 minutes</span><span>Weekday ₹460 · Weekend ₹490</span></div>
+    <div class="rate-row"><span>23–25 minutes</span><span>Weekday ₹500 · Weekend ₹550</span></div>
+    <div class="rate-row"><span>26–28 minutes</span><span>Weekday ₹550 · Weekend ₹600</span></div>
+    <div class="rate-row"><span>29+ minutes</span><span>Weekday ₹660 · Weekend ₹720</span></div>
+    <p class="hint">For matches under 10 minutes, enter the payment amount manually when adding the match.</p>
+  </section>
+</main>
+<script>
+const rates = [
+  { min: 10, max: 11, weekday: 230, weekend: 250 },
+  { min: 12, max: 14, weekday: 270, weekend: 300 },
+  { min: 15, max: 16, weekday: 340, weekend: 370 },
+  { min: 17, max: 19, weekday: 390, weekend: 430 },
+  { min: 20, max: 22, weekday: 460, weekend: 490 },
+  { min: 23, max: 25, weekday: 500, weekend: 550 },
+  { min: 26, max: 28, weekday: 550, weekend: 600 },
+  { min: 29, max: Infinity, weekday: 660, weekend: 720 }
+];
+const $ = id => document.getElementById(id);
+const money = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+const today = new Date();
+const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('matchTime').value = `${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}`;
+$('matchDate').value = localDate(today);
+$('summaryDate').value = localDate(today);
+let matches = [];
+try { matches = JSON.parse(localStorage.getItem('slickInsightMatches') || '[]'); if (!Array.isArray(matches)) matches = []; } catch { matches = []; }
+function isWeekend(dateString) {
+  const day = new Date(dateString + 'T12:00:00').getDay();
+  return day === 0 || day === 6;
+}
+function getRate(minutes, dateString) {
+  const rate = rates.find(r => minutes >= r.min && minutes <= r.max);
+  if (!rate) return null;
+  const weekend = isWeekend(dateString);
+  return { amount: weekend ? rate.weekend : rate.weekday, weekend, range: rate.max === Infinity ? '29+ minutes' : `${rate.min}–${rate.max} minutes` };
+}
+function updatePreview() {
+  const date = $('matchDate').value;
+  const minutes = Number($('minutes').value);
+  if (!date || !Number.isInteger(minutes) || minutes <= 0) {
+    $('matchAmount').textContent = money(0);
+    $('rateType').textContent = 'Choose a date and enter the match duration.';
+    $('rateExplanation').textContent = 'Enter a duration to see the applicable rate.';
+    return;
+  }
+  const weekend = isWeekend(date);
+  $('rateType').textContent = `${weekend ? 'Weekend rate (Saturday/Sunday)' : 'Weekday rate (Monday–Friday)'} · ${date}`;
+  const result = getRate(minutes, date);
+  $('manualAmountWrap').hidden = minutes >= 10;
+  if (!result) {
+    const manualValue = $('manualAmount').value;
+    if (minutes < 10 && manualValue !== '' && Number(manualValue) >= 0) {
+      $('matchAmount').textContent = money(Number(manualValue));
+      $('rateExplanation').textContent = 'Manually entered amount';
+    } else {
+      $('matchAmount').textContent = 'Enter amount';
+      $('rateExplanation').textContent = 'For matches under 10 minutes, enter the amount you received.';
+    }
+  } else {
+    $('matchAmount').textContent = money(result.amount);
+    $('rateExplanation').textContent = `${result.range} · ${result.weekend ? 'Weekend' : 'Weekday'} rate`;
+  }
+}
+function save() { localStorage.setItem('slickInsightMatches', JSON.stringify(matches)); }
+function renderDay() {
+  const date = $('summaryDate').value;
+  const dayMatches = matches.filter(m => m.date === date);
+  const selected = date ? new Date(date + 'T12:00:00') : new Date();
+  const monday = new Date(selected);
+  const weekday = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - weekday);
+  const weekStart = localDate(monday);
+  const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+  const weekEnd = localDate(sunday);
+  const monthPrefix = date ? date.slice(0, 7) : '';
+  const sum = list => list.reduce((total, m) => total + Number(m.amount || 0), 0);
+  $('dayTotalCard').textContent = money(sum(dayMatches));
+  $('weekTotal').textContent = money(sum(matches.filter(m => m.date >= weekStart && m.date <= weekEnd)));
+  $('monthTotal').textContent = money(sum(matches.filter(m => m.date && m.date.slice(0, 7) === monthPrefix)));
+  $('allTimeTotal').textContent = money(sum(matches));
+  const total = dayMatches.reduce((sum, m) => sum + m.amount, 0);
+  $('dayTotal').textContent = money(total);
+  $('matchCount').textContent = `${dayMatches.length} ${dayMatches.length === 1 ? 'match' : 'matches'}`;
+  const list = $('matchList');
+  list.innerHTML = '';
+  if (!dayMatches.length) {
+    list.innerHTML = '<div class="empty">No matches added for this date yet.</div>';
+    return;
+  }
+  dayMatches.forEach((m, index) => {
+    const row = document.createElement('div'); row.className = 'match';
+    const details = document.createElement('div');
+    const title = document.createElement('strong'); title.textContent = `Match ${index + 1} · ${m.minutes} min`;
+    const sub = document.createElement('small'); sub.textContent = `${m.time ? m.time + ' · ' : ''}${m.weekend ? 'Weekend' : 'Weekday'}` + (m.manual ? ' · Manually entered amount' : ' rate');
+    details.append(title, sub);
+    const price = document.createElement('span'); price.className = 'price'; price.textContent = money(m.amount);
+    row.append(details, price); list.append(row);
+  });
+}
+$('minutes').addEventListener('input', updatePreview);
+$('manualAmount').addEventListener('input', updatePreview);
+$('matchDate').addEventListener('change', updatePreview);
+$('summaryDate').addEventListener('change', renderDay);
+$('addMatch').addEventListener('click', () => {
+  const date = $('matchDate').value;
+  const minutes = Number($('minutes').value);
+  if (!date || !Number.isInteger(minutes) || minutes <= 0) { $('message').textContent = 'Please select a date and enter a whole number of minutes.'; return; }
+  const result = getRate(minutes, date);
+  let amount;
+  if (!result) {
+    const manualValue = $('manualAmount').value;
+    if (manualValue === '' || !Number.isFinite(Number(manualValue)) || Number(manualValue) < 0) {
+      $('message').textContent = 'For matches under 10 minutes, please enter the amount manually.';
+      return;
+    }
+    amount = Number(manualValue);
+  } else {
+    amount = result.amount;
+  }
+  const weekend = isWeekend(date);
+  const time = $('matchTime').value || '';
+  matches.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, date, time, minutes, amount, weekend, manual: !result });
+  save(); $('summaryDate').value = date; renderDay();
+  $('message').textContent = `Added ${minutes}-minute match for ${money(amount)}.`;
+  $('minutes').value = ''; $('manualAmount').value = ''; updatePreview();
+});
+$('clearDay').addEventListener('click', () => {
+  const date = $('summaryDate').value;
+  if (!date) { $('message').textContent = 'Choose a date first.'; return; }
+  if (!matches.some(m => m.date === date)) { $('message').textContent = 'There are no matches to clear for this date.'; return; }
+  if (confirm(`Delete all saved matches for ${date}? This cannot be undone.`)) {
+    matches = matches.filter(m => m.date !== date); save(); renderDay(); $('message').textContent = 'Matches cleared for the selected date.';
+  }
+});
+$('exportCsv').addEventListener('click', () => {
+  const date = $('summaryDate').value;
+  const rows = matches.filter(m => m.date === date);
+  if (!rows.length) { $('message').textContent = 'No matches to export for this date.'; return; }
+  const csv = [['Date','Time','Match duration (minutes)','Day type','Amount (INR)'], ...rows.map(m => [m.date,m.time || '',m.minutes,m.weekend ? 'Weekend' : 'Weekday',m.amount])].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `slick-insight-${date}.csv`; a.click(); URL.revokeObjectURL(url);
+});
+updatePreview(); renderDay();
+
+// Enable offline use when the app is hosted on HTTPS (for example, GitHub Pages).
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
+}
+</script>
+</body>
+</html>
