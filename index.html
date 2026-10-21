@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#172554" />
-<meta name="description" content="Track Slick Insight match earnings by date, duration, weekday and weekend." />
+<meta name="description" content="Track Slick Insight match earnings by date, game ID, duration, weekday and weekend." />
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <title>Slick Insight Earnings Calculator</title>
@@ -50,15 +50,15 @@
 <main class="app">
   <header>
     <h1>₹ Slick Insight Calculator</h1>
-    <p>Calculate match earnings by duration and date. Saturday and Sunday use weekend rates.</p>
+    <p>Calculate match earnings by game ID, duration and date. Saturday and Sunday use weekend rates.</p>
   </header>
 
   <section class="panel">
     <h2>Calculate a match</h2>
     <label for="matchDate">Match date</label>
     <input id="matchDate" type="date" />
-    <label for="matchTime">Match time (optional)</label>
-    <input id="matchTime" type="time" />
+    <label for="gameId">Game ID</label>
+    <input id="gameId" type="text" maxlength="80" placeholder="Enter game ID" autocomplete="off" />
     <label for="minutes">Match duration (whole minutes)</label>
     <input id="minutes" type="number" min="1" step="1" placeholder="e.g. 18" inputmode="numeric" />
     <div id="rateType" class="status">Choose a date and enter the match duration.</div>
@@ -96,7 +96,7 @@
       <button class="secondary" id="exportCsv">Download daily report</button>
       <button class="danger" id="clearDay">Clear this day's matches</button>
     </div>
-    <p class="hint">Matches are saved in this browser on this device. Use “Download daily report” to keep a copy.</p>
+    <p class="hint">Matches are saved in this browser on this device, along with each Game ID. Use “Download daily report” to keep a copy.</p>
   </section>
 
   <section class="panel">
@@ -127,7 +127,6 @@ const $ = id => document.getElementById(id);
 const money = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 const today = new Date();
 const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-$('matchTime').value = `${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}`;
 $('matchDate').value = localDate(today);
 $('summaryDate').value = localDate(today);
 let matches = [];
@@ -199,7 +198,7 @@ function renderDay() {
     const row = document.createElement('div'); row.className = 'match';
     const details = document.createElement('div');
     const title = document.createElement('strong'); title.textContent = `Match ${index + 1} · ${m.minutes} min`;
-    const sub = document.createElement('small'); sub.textContent = `${m.time ? m.time + ' · ' : ''}${m.weekend ? 'Weekend' : 'Weekday'}` + (m.manual ? ' · Manually entered amount' : ' rate');
+    const sub = document.createElement('small'); sub.textContent = `${m.gameId ? 'Game ID: ' + m.gameId + ' · ' : ''}${m.weekend ? 'Weekend' : 'Weekday'}` + (m.manual ? ' · Manually entered amount' : ' rate');
     details.append(title, sub);
     const price = document.createElement('span'); price.className = 'price'; price.textContent = money(m.amount);
     row.append(details, price); list.append(row);
@@ -226,11 +225,12 @@ $('addMatch').addEventListener('click', () => {
     amount = result.amount;
   }
   const weekend = isWeekend(date);
-  const time = $('matchTime').value || '';
-  matches.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, date, time, minutes, amount, weekend, manual: !result });
+  const gameId = $('gameId').value.trim();
+  if (!gameId) { $('message').textContent = 'Please enter the game ID.'; $('gameId').focus(); return; }
+  matches.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, date, gameId, minutes, amount, weekend, manual: !result });
   save(); $('summaryDate').value = date; renderDay();
   $('message').textContent = `Added ${minutes}-minute match for ${money(amount)}.`;
-  $('minutes').value = ''; $('manualAmount').value = ''; updatePreview();
+  $('minutes').value = ''; $('manualAmount').value = ''; $('gameId').value = ''; updatePreview();
 });
 $('clearDay').addEventListener('click', () => {
   const date = $('summaryDate').value;
@@ -244,7 +244,7 @@ $('exportCsv').addEventListener('click', () => {
   const date = $('summaryDate').value;
   const rows = matches.filter(m => m.date === date);
   if (!rows.length) { $('message').textContent = 'No matches to export for this date.'; return; }
-  const csv = [['Date','Time','Match duration (minutes)','Day type','Amount (INR)'], ...rows.map(m => [m.date,m.time || '',m.minutes,m.weekend ? 'Weekend' : 'Weekday',m.amount])].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\r\n');
+  const csv = [['Date','Game ID','Match duration (minutes)','Day type','Amount (INR)'], ...rows.map(m => [m.date,m.gameId || '',m.minutes,m.weekend ? 'Weekend' : 'Weekday',m.amount])].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `slick-insight-${date}.csv`; a.click(); URL.revokeObjectURL(url);
 });
