@@ -30,14 +30,13 @@
   .amount { display: block; color: #047857; font-size: 32px; font-weight: 800; margin-top: 5px; }
   .hint, .status { color: #64748b; font-size: 13px; line-height: 1.5; }
   .status { margin-top: 10px; }
-  .match { border-top: 1px solid #e2e8f0; padding: 13px 0; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-  .match:first-child { border-top: 0; }
-  .match strong { display: block; margin-bottom: 4px; }
-  .match small { color: #64748b; }
-  .match .price { font-weight: 800; white-space: nowrap; }
   .empty { color: #64748b; font-size: 14px; padding: 8px 0; }
-  .rate-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #e2e8f0; font-size: 14px; }
-  .rate-row span:last-child { text-align: right; }
+  .table-wrap { width: 100%; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 12px; }
+  .match-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
+  .match-table th, .match-table td { padding: 11px 9px; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  .match-table th { background: #f1f5f9; color: #334155; font-size: 12px; }
+  .match-table tbody tr:last-child td { border-bottom: 0; }
+  .match-table .price-cell { color: #047857; font-weight: 800; }
   .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; min-width: 0; }
@@ -50,7 +49,7 @@
 <main class="app">
   <header>
     <h1>₹ Slick Insight Calculator</h1>
-    <p>Calculate match earnings by game ID, duration and date. Saturday and Sunday use weekend rates.</p>
+    <p>Calculate match earnings by date and duration. Period and shift are recorded for reference and do not affect price.</p>
   </header>
 
   <section class="panel">
@@ -61,6 +60,10 @@
     <input id="gameId" type="text" maxlength="80" placeholder="Enter game ID" autocomplete="off" />
     <label for="minutes">Match duration (whole minutes)</label>
     <input id="minutes" type="number" min="1" step="1" placeholder="e.g. 18" inputmode="numeric" />
+    <label for="period">Period</label>
+    <input id="period" type="text" maxlength="40" placeholder="e.g. 1st period" autocomplete="off" />
+    <label for="shift">Shift</label>
+    <input id="shift" type="text" maxlength="40" placeholder="e.g. Shift 1" autocomplete="off" />
     <div id="rateType" class="status">Choose a date and enter the match duration.</div>
     <div id="manualAmountWrap" hidden>
       <label for="manualAmount">Enter amount manually (₹)</label>
@@ -81,36 +84,27 @@
     <label for="summaryDate">Show saved matches for date</label>
     <input id="summaryDate" type="date" />
     <div class="stats">
-      <div class="stat"><small>Selected day</small><strong id="dayTotalCard">₹0</strong></div>
-      <div class="stat"><small>Selected week (Mon–Sun)</small><strong id="weekTotal">₹0</strong></div>
-      <div class="stat"><small>Selected month</small><strong id="monthTotal">₹0</strong></div>
-      <div class="stat"><small>All-time total</small><strong id="allTimeTotal">₹0</strong></div>
-    </div>
-    <div class="total" style="margin-top:12px">
-      <small>Total earnings for selected date</small>
-      <span class="amount" id="dayTotal">₹0</span>
-      <small id="matchCount">0 matches</small>
+      <div class="stat"><small>Daily income</small><strong id="dayTotalCard">₹0</strong></div>
+      <div class="stat"><small>Monthly income</small><strong id="monthTotal">₹0</strong></div>
+      <div class="stat"><small>Till-date income</small><strong id="allTimeTotal">₹0</strong></div>
     </div>
     <div id="matchList" style="margin-top:12px"></div>
-    <div class="actions">
-      <button class="secondary" id="exportCsv">Download daily report</button>
+    <div class="panel" style="padding:14px; margin-top:12px; box-shadow:none; border:1px solid #e2e8f0">
+      <h2 style="margin-bottom:8px">Monthly report</h2>
+      <p class="hint">Choose any date range to download the matches recorded between those dates, inclusive.</p>
+      <label for="reportStart">From date</label>
+      <input id="reportStart" type="date" />
+      <label for="reportEnd">To date</label>
+      <input id="reportEnd" type="date" />
+      <button class="secondary" id="exportCsv" style="margin-top:12px">Download monthly report</button>
+    </div>
+    <div style="margin-top:12px">
       <button class="danger" id="clearDay">Clear this day's matches</button>
     </div>
-    <p class="hint">Matches are saved in this browser on this device, along with each Game ID. Use “Download daily report” to keep a copy.</p>
+    <p class="hint">Matches are saved in this browser on this device. Period and shift are for reference only and do not change the price.</p>
   </section>
 
-  <section class="panel">
-    <h2>Rate card</h2>
-    <div class="rate-row"><span>10–11 minutes</span><span>Weekday ₹230 · Weekend ₹250</span></div>
-    <div class="rate-row"><span>12–14 minutes</span><span>Weekday ₹270 · Weekend ₹300</span></div>
-    <div class="rate-row"><span>15–16 minutes</span><span>Weekday ₹340 · Weekend ₹370</span></div>
-    <div class="rate-row"><span>17–19 minutes</span><span>Weekday ₹390 · Weekend ₹430</span></div>
-    <div class="rate-row"><span>20–22 minutes</span><span>Weekday ₹460 · Weekend ₹490</span></div>
-    <div class="rate-row"><span>23–25 minutes</span><span>Weekday ₹500 · Weekend ₹550</span></div>
-    <div class="rate-row"><span>26–28 minutes</span><span>Weekday ₹550 · Weekend ₹600</span></div>
-    <div class="rate-row"><span>29+ minutes</span><span>Weekday ₹660 · Weekend ₹720</span></div>
-    <p class="hint">For matches under 10 minutes, enter the payment amount manually when adding the match.</p>
-  </section>
+
 </main>
 <script>
 const rates = [
@@ -129,8 +123,14 @@ const today = new Date();
 const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 $('matchDate').value = localDate(today);
 $('summaryDate').value = localDate(today);
+const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+$('reportStart').value = localDate(monthStart);
+$('reportEnd').value = localDate(monthEnd);
 let matches = [];
-try { matches = JSON.parse(localStorage.getItem('slickInsightMatches') || '[]'); if (!Array.isArray(matches)) matches = []; } catch { matches = []; }
+// Start with a clean dataset so old test entries from the previous version cannot inflate totals.
+const STORAGE_KEY = 'slickInsightMatchesV2';
+try { matches = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); if (!Array.isArray(matches)) matches = []; } catch { matches = []; }
 function isWeekend(dateString) {
   const day = new Date(dateString + 'T12:00:00').getDay();
   return day === 0 || day === 6;
@@ -168,41 +168,34 @@ function updatePreview() {
     $('rateExplanation').textContent = `${result.range} · ${result.weekend ? 'Weekend' : 'Weekday'} rate`;
   }
 }
-function save() { localStorage.setItem('slickInsightMatches', JSON.stringify(matches)); }
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(matches)); }
 function renderDay() {
   const date = $('summaryDate').value;
   const dayMatches = matches.filter(m => m.date === date);
-  const selected = date ? new Date(date + 'T12:00:00') : new Date();
-  const monday = new Date(selected);
-  const weekday = (monday.getDay() + 6) % 7;
-  monday.setDate(monday.getDate() - weekday);
-  const weekStart = localDate(monday);
-  const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
-  const weekEnd = localDate(sunday);
   const monthPrefix = date ? date.slice(0, 7) : '';
   const sum = list => list.reduce((total, m) => total + Number(m.amount || 0), 0);
   $('dayTotalCard').textContent = money(sum(dayMatches));
-  $('weekTotal').textContent = money(sum(matches.filter(m => m.date >= weekStart && m.date <= weekEnd)));
   $('monthTotal').textContent = money(sum(matches.filter(m => m.date && m.date.slice(0, 7) === monthPrefix)));
   $('allTimeTotal').textContent = money(sum(matches));
-  const total = dayMatches.reduce((sum, m) => sum + m.amount, 0);
-  $('dayTotal').textContent = money(total);
-  $('matchCount').textContent = `${dayMatches.length} ${dayMatches.length === 1 ? 'match' : 'matches'}`;
   const list = $('matchList');
   list.innerHTML = '';
   if (!dayMatches.length) {
     list.innerHTML = '<div class="empty">No matches added for this date yet.</div>';
     return;
   }
-  dayMatches.forEach((m, index) => {
-    const row = document.createElement('div'); row.className = 'match';
-    const details = document.createElement('div');
-    const title = document.createElement('strong'); title.textContent = `Match ${index + 1} · ${m.minutes} min`;
-    const sub = document.createElement('small'); sub.textContent = `${m.gameId ? 'Game ID: ' + m.gameId + ' · ' : ''}${m.weekend ? 'Weekend' : 'Weekday'}` + (m.manual ? ' · Manually entered amount' : ' rate');
-    details.append(title, sub);
-    const price = document.createElement('span'); price.className = 'price'; price.textContent = money(m.amount);
-    row.append(details, price); list.append(row);
+  const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+  const table = document.createElement('table'); table.className = 'match-table';
+  table.innerHTML = '<thead><tr><th>Game ID</th><th>Duration</th><th>Shift</th><th>Period</th><th>Price</th></tr></thead>';
+  const tbody = document.createElement('tbody');
+  dayMatches.forEach(m => {
+    const row = document.createElement('tr');
+    [m.gameId || '—', `${m.minutes} min`, m.shift || '—', m.period || '—'].forEach(value => {
+      const cell = document.createElement('td'); cell.textContent = value; row.appendChild(cell);
+    });
+    const price = document.createElement('td'); price.className = 'price-cell'; price.textContent = money(m.amount); row.appendChild(price);
+    tbody.appendChild(row);
   });
+  table.appendChild(tbody); wrap.appendChild(table); list.appendChild(wrap);
 }
 $('minutes').addEventListener('input', updatePreview);
 $('manualAmount').addEventListener('input', updatePreview);
@@ -226,11 +219,15 @@ $('addMatch').addEventListener('click', () => {
   }
   const weekend = isWeekend(date);
   const gameId = $('gameId').value.trim();
+  const period = $('period').value.trim();
+  const shift = $('shift').value.trim();
   if (!gameId) { $('message').textContent = 'Please enter the game ID.'; $('gameId').focus(); return; }
-  matches.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, date, gameId, minutes, amount, weekend, manual: !result });
+  if (!period) { $('message').textContent = 'Please enter the period.'; $('period').focus(); return; }
+  if (!shift) { $('message').textContent = 'Please enter the shift.'; $('shift').focus(); return; }
+  matches.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, date, gameId, minutes, period, shift, amount, weekend, manual: !result });
   save(); $('summaryDate').value = date; renderDay();
   $('message').textContent = `Added ${minutes}-minute match for ${money(amount)}.`;
-  $('minutes').value = ''; $('manualAmount').value = ''; $('gameId').value = ''; updatePreview();
+  $('minutes').value = ''; $('manualAmount').value = ''; $('gameId').value = ''; $('period').value = ''; $('shift').value = ''; updatePreview();
 });
 $('clearDay').addEventListener('click', () => {
   const date = $('summaryDate').value;
@@ -241,12 +238,42 @@ $('clearDay').addEventListener('click', () => {
   }
 });
 $('exportCsv').addEventListener('click', () => {
-  const date = $('summaryDate').value;
-  const rows = matches.filter(m => m.date === date);
-  if (!rows.length) { $('message').textContent = 'No matches to export for this date.'; return; }
-  const csv = [['Date','Game ID','Match duration (minutes)','Day type','Amount (INR)'], ...rows.map(m => [m.date,m.gameId || '',m.minutes,m.weekend ? 'Weekend' : 'Weekday',m.amount])].map(row => row.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\r\n');
+  const startDate = $('reportStart').value;
+  const endDate = $('reportEnd').value;
+  if (!startDate || !endDate) {
+    $('message').textContent = 'Please select both the from date and to date for the report.';
+    return;
+  }
+  if (startDate > endDate) {
+    $('message').textContent = 'The from date must be on or before the to date.';
+    return;
+  }
+  const rows = matches
+    .filter(m => m.date >= startDate && m.date <= endDate)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!rows.length) {
+    $('message').textContent = `No matches found between ${startDate} and ${endDate}.`;
+    return;
+  }
+  const total = rows.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+  const csvRows = [
+    ['Report from', startDate],
+    ['Report to', endDate],
+    [],
+    ['Date','Game ID','Match duration (minutes)','Period','Shift','Amount (INR)'],
+    ...rows.map(m => [m.date,m.gameId || '',m.minutes,m.period || '',m.shift || '',m.amount]),
+    [],
+    ['Total income','','','','',total]
+  ];
+  const csv = csvRows.map(row => row.map(v => `"${String(v ?? '').replaceAll('"','""')}"`).join(',')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `slick-insight-${date}.csv`; a.click(); URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `slick-insight-report-${startDate}-to-${endDate}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  $('message').textContent = `Report downloaded: ${rows.length} matches, total ${money(total)}.`;
 });
 updatePreview(); renderDay();
 
